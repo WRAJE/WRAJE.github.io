@@ -47,59 +47,6 @@
         </div>
       </div>
     </section>
-
-    <!-- 社交媒体 -->
-    <section class="social-links">
-      <div class="container">
-        <h2>社交媒体</h2>
-        <div class="social-grid">
-          <a href="#" class="social-card">
-            <div class="social-icon">📧</div>
-            <h3>微信</h3>
-            <p>技术交流群</p>
-          </a>
-          <a href="#" class="social-card">
-            <div class="social-icon">💬</div>
-            <h3>QQ</h3>
-            <p>项目合作咨询</p>
-          </a>
-          <a href="#" class="social-card">
-            <div class="social-icon">🎓</div>
-            <h3>知乎</h3>
-            <p>技术文章分享</p>
-          </a>
-          <a href="#" class="social-card">
-            <div class="social-icon">📱</div>
-            <h3>B站</h3>
-            <p>编程教程视频</p>
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- 技术平台 -->
-    <section class="tech-platforms">
-      <div class="container">
-        <h2>技术平台</h2>
-        <div class="platform-grid">
-          <a href="#" class="platform-card">
-            <div class="platform-icon">🌐</div>
-            <h3>个人博客</h3>
-            <p>技术心得和项目记录</p>
-          </a>
-          <a href="#" class="platform-card">
-            <div class="platform-icon">📝</div>
-            <h3>CSDN</h3>
-            <p>技术文章发布</p>
-          </a>
-          <a href="#" class="platform-card">
-            <div class="platform-icon">🔧</div>
-            <h3>Gitee</h3>
-            <p>国内代码托管</p>
-          </a>
-        </div>
-      </div>
-    </section>
   </div>
 </template>
 
