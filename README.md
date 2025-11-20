@@ -29,18 +29,18 @@
 - **[GitHub Actions](https://github.com/features/actions)** - 自动化CI/CD
 
 ## 📁 项目结构
-WRAJE.github.io/
-├── public/ # 静态资源
-│ └── favicon.ico
-├── src/ # 源代码
-│ ├── assets/ # 样式和图片
-│ │ ├── main.css
-│ │ └── style.css
-│ ├── components/ # 公共组件
-│ ├── views/ # 页面组件
-│ │ ├── HomeView.vue
-│ │ ├── AboutView.vue
-│ │ ├── ProjectsView.vue
+WRAJE.github.io/  
+├── public/ # 静态资源  
+│ └── favicon.ico  
+├── src/ # 源代码  
+│ ├── assets/ # 样式和图片  
+│ │ ├── main.css  
+│ │ └── style.css  
+│ ├── components/ # 公共组件  
+│ ├── views/ # 页面组件  
+│ │ ├── HomeView.vue  
+│ │ ├── AboutView.vue  
+│ │ ├── ProjectsView.vue  
 │ │ ├── BlogView.vue
 │ │ ├── SkillsView.vue
 │ │ ├── LinksView.vue
