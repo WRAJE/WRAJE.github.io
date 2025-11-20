@@ -1,5 +1,3 @@
-# 🚀 WRAJE 的个人作品集
-
 > 一个基于 Vue 3 + Vite 构建的现代化个人作品集网站
 
 [![GitHub stars](https://img.shields.io/github/stars/WRAJE/WRAJE.github.io?style=social)](https://github.com/WRAJE/WRAJE.github.io/stargazers)
