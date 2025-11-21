@@ -121,20 +121,6 @@
         </div>
       </div>
     </section>
-
-    <!-- 订阅区域 -->
-    <section class="subscribe-section">
-      <div class="container">
-        <div class="subscribe-content">
-          <h2>关注我的技术成长</h2>
-          <p>定期分享开发经验和技术心得</p>
-          <div class="subscribe-form">
-            <input type="email" placeholder="输入你的邮箱" class="email-input">
-            <button class="subscribe-btn">订阅</button>
-          </div>
-        </div>
-      </div>
-    </section>
   </div>
 </template>
 
