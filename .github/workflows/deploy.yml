@@ -8,7 +8,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write  # 👈 必须保留：允许 GITHUB_TOKEN 写入仓库
 
     steps:
       - uses: actions/checkout@v3
@@ -27,6 +27,7 @@ jobs:
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
         with:
-          deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          # 👇 主要修改在这里：
+          github_token: ${{ secrets.GITHUB_TOKEN }}  # 使用 GitHub 自带的 Token
           publish_dir: ./dist
           publish_branch: main  # 👈 推送到 main 分支
