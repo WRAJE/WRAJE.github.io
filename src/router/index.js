@@ -1,8 +1,9 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 
 const router = createRouter({
-  history: createWebHashHistory(), // 👈 已修改：使用 hash 模式，移除 import.meta.env.BASE_URL
+  // 使用 History 模式（更干净的 URL），并配合 GitHub Pages 的 404 fallback 解决刷新/直达子路由 404
+  history: createWebHistory(import.meta.env.BASE_URL),
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {
       return savedPosition

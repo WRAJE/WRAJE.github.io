@@ -10,10 +10,14 @@ app.use(router)
 
 // 初始化 Analytics SDK
 // eslint-disable-next-line no-undef
-Analytics.init('http://127.0.0.1:8888')
+Analytics.init('http://127.0.0.1:8888', { autoTrackPageView: true, skipInitialPageView: true })
 
-// 绑定 Vue Router（自动追踪所有路由变化）
-// eslint-disable-next-line no-undef
-Analytics.bindVueRouter(router)
+// 等路由 ready 后再绑定并发送首屏 PV，避免刷新时先被记录为 '/'
+router.isReady().then(() => {
+  // eslint-disable-next-line no-undef
+  Analytics.bindVueRouter(router)
+  // eslint-disable-next-line no-undef
+  Analytics.trackPageView()
+})
 
 app.mount('#app')

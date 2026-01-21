@@ -18,6 +18,8 @@
     const DEFAULT_CONFIG = {
         endpoint: '',
         autoTrackPageView: true,
+        // 跳过初始化时的首屏 PV（用于 SPA：等待 Router ready 后再手动上报）
+        skipInitialPageView: false,
         autoTrackEvents: true,
         batchSize: 10,
         flushInterval: 5000,
@@ -173,8 +175,10 @@
      */
     function getCurrentPath() {
         // 优先从Vue Router获取
+        // 兼容 Vue Router 4：currentRoute 是 ref，需要取 .value
         if (vueRouter && vueRouter.currentRoute) {
-            return vueRouter.currentRoute.path || vueRouter.currentRoute.fullPath || '/';
+            const route = vueRouter.currentRoute.value || vueRouter.currentRoute;
+            return route.path || route.fullPath || window.location.pathname || '/';
         }
         
         // 处理hash路由 (#/path)
@@ -336,7 +340,7 @@
             startFlushTimer();
 
             // 自动追踪页面浏览
-            if (config.autoTrackPageView) {
+            if (config.autoTrackPageView && !config.skipInitialPageView) {
                 this.trackPageView();
             }
 

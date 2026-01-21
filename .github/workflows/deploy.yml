@@ -22,7 +22,10 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build  # 输出到 ./dist
+        run: |
+          npm run build  # 输出到 ./dist
+          # GitHub Pages SPA fallback：将 index.html 复制为 404.html，解决刷新/直达子路由 404
+          cp dist/index.html dist/404.html
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
