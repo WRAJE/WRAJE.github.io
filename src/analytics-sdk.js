@@ -18,8 +18,6 @@
     const DEFAULT_CONFIG = {
         endpoint: '',
         autoTrackPageView: true,
-        // 跳过初始化时的首屏 PV（用于 SPA：等待 Router ready 后再手动上报）
-        skipInitialPageView: false,
         autoTrackEvents: true,
         batchSize: 10,
         flushInterval: 5000,
@@ -174,21 +172,44 @@
      * 获取当前路径（支持SPA hash路由）
      */
     function getCurrentPath() {
-        // 优先从Vue Router获取
-        // 兼容 Vue Router 4：currentRoute 是 ref，需要取 .value
+        // 优先从Vue Router获取（最准确）
         if (vueRouter && vueRouter.currentRoute) {
-            const route = vueRouter.currentRoute.value || vueRouter.currentRoute;
-            return route.path || route.fullPath || window.location.pathname || '/';
+            const route = vueRouter.currentRoute;
+            // Vue Router 3.x 使用 route.path, route.fullPath
+            // Vue Router 4.x 使用 route.path, route.fullPath
+            let path = route.path || route.fullPath;
+            
+            if (path && typeof path === 'string') {
+                // 确保路径格式正确
+                path = path.trim();
+                // 如果路径为空或者是根路径，返回 '/'
+                return path || '/';
+            }
         }
         
-        // 处理hash路由 (#/path)
+        // 处理hash路由 (#/path 或 #/)
         const hash = window.location.hash;
-        if (hash && hash.startsWith('#/')) {
-            return hash.substring(1); // 移除 #，保留 /path
+        if (hash) {
+            // 处理 #/ 开头的hash路由
+            if (hash.startsWith('#/')) {
+                const path = hash.substring(1); // 移除 #，得到 /path 或 /
+                // 如果hash是 #/，path 就是 /，这是正确的首页路径
+                return path || '/';
+            }
+            // 处理单独的 #（应该很少见）
+            if (hash === '#') {
+                return '/';
+            }
         }
         
-        // 传统路径
-        return window.location.pathname || '/';
+        // 传统路径（非SPA情况）
+        const pathname = window.location.pathname;
+        if (pathname && pathname !== '/') {
+            return pathname;
+        }
+        
+        // 默认返回根路径
+        return '/';
     }
 
     /**
@@ -227,7 +248,85 @@
     }
 
     /**
+     * 检查是否为本地网络地址
+     */
+    function isLocalNetwork(url) {
+        try {
+            const urlObj = new URL(url);
+            const hostname = urlObj.hostname.toLowerCase();
+            
+            // localhost
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                return true;
+            }
+            
+            // .local 域名
+            if (hostname.endsWith('.local')) {
+                return true;
+            }
+            
+            // 私有IP地址 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
+            const ipParts = hostname.split('.');
+            if (ipParts.length === 4) {
+                const first = parseInt(ipParts[0]);
+                const second = parseInt(ipParts[1]);
+                
+                if (first === 10) return true;
+                if (first === 172 && second >= 16 && second <= 31) return true;
+                if (first === 192 && second === 168) return true;
+                if (first === 127) return true; // 127.0.0.0/8
+            }
+            
+            return false;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /**
+     * 使用图片方式发送数据（最兼容的方式，支持所有浏览器包括Safari）
+     */
+    function sendDataViaImage(data) {
+        const url = config.endpoint + '/track.gif';
+        
+        // 构建查询参数
+        const params = new URLSearchParams();
+        
+        // 发送关键数据，避免URL过长
+        if (data.path) params.append('path', data.path);
+        if (data.title) params.append('title', data.title.substring(0, 100)); // 限制长度
+        if (data.user_id) params.append('uid', data.user_id);
+        if (data.session_id) params.append('sid', data.session_id);
+        if (data.device_type) params.append('dt', data.device_type);
+        if (data.os) params.append('os', data.os);
+        if (data.browser) params.append('br', data.browser);
+        if (data.browser_version) params.append('brv', data.browser_version);
+        if (data.screen_width) params.append('sw', data.screen_width);
+        if (data.screen_height) params.append('sh', data.screen_height);
+        if (data.event) params.append('event', data.event);
+        if (data.pv) params.append('pv', data.pv);
+        if (data.timestamp) params.append('timestamp', data.timestamp);
+        if (data.referrer) params.append('ref', data.referrer.substring(0, 200)); // 限制长度
+        if (data.url) params.append('url', data.url.substring(0, 500)); // 限制长度
+        
+        try {
+            const img = new Image();
+            // 设置onerror处理，但不阻塞
+            img.onerror = function() {
+                log('图片方式发送失败（onerror）', '');
+            };
+            img.src = url + '?' + params.toString();
+            log('数据已通过图片方式发送', data);
+            return true;
+        } catch (e) {
+            log('图片方式发送失败', e);
+            return false;
+        }
+    }
+
+    /**
      * 发送数据到服务器
+     * 优先使用图片方式以确保所有浏览器兼容性（特别是Safari）
      */
     function sendData(data, useBeacon = false) {
         if (!config.endpoint) {
@@ -236,38 +335,71 @@
         }
 
         const url = config.endpoint + '/collect';
+        const currentBrowser = getBrowser();
+        const isSafari = currentBrowser === 'Safari';
         
-        // 如果使用 Beacon API（适用于页面卸载时）
-        if (useBeacon && navigator.sendBeacon) {
+        // Safari浏览器优先使用图片方式（最兼容）
+        // 其他浏览器也优先使用图片方式，因为这是最可靠的方法
+        // 只有在页面卸载时才尝试使用Beacon API
+        if (useBeacon && navigator.sendBeacon && !isSafari) {
             try {
                 const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-                navigator.sendBeacon(url, blob);
-                log('数据已通过 Beacon 发送', data);
-                return;
+                const success = navigator.sendBeacon(url, blob);
+                if (success) {
+                    log('数据已通过 Beacon 发送', data);
+                    return;
+                } else {
+                    log('Beacon 发送失败，使用图片方式', data);
+                    sendDataViaImage(data);
+                    return;
+                }
             } catch (e) {
-                log('Beacon 发送失败，使用 fetch', e);
+                log('Beacon 发送异常，使用图片方式', e);
+                sendDataViaImage(data);
+                return;
             }
         }
 
-        // 使用 fetch 发送
-        fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data),
-            keepalive: true // 允许在页面卸载后继续发送
-        }).then(response => {
-            if (response.ok) {
-                log('数据发送成功', data);
-            } else {
-                log('数据发送失败', response.status);
+        // 对于Safari或常规发送，优先使用图片方式（最兼容）
+        // 图片方式支持所有浏览器，包括Safari、IE等
+        if (sendDataViaImage(data)) {
+            log('数据已通过图片方式发送（兼容模式）', data);
+            return;
+        }
+
+        // 如果图片方式失败，尝试使用fetch（作为备用方案）
+        try {
+            const fetchOptions = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            };
+            
+            // Safari对keepalive支持有限，只在非Safari时使用
+            if (!isSafari) {
+                fetchOptions.keepalive = true;
             }
-        }).catch(error => {
-            log('数据发送错误', error);
-            // 失败时加入队列，稍后重试
+
+            fetch(url, fetchOptions).then(response => {
+                if (response.ok) {
+                    log('数据发送成功（fetch方式）', data);
+                } else {
+                    log('Fetch 发送失败', response.status);
+                    // 失败时加入队列稍后重试
+                    eventQueue.push(data);
+                }
+            }).catch(error => {
+                log('Fetch 发送错误，加入队列', error);
+                // 失败时加入队列稍后重试
+                eventQueue.push(data);
+            });
+        } catch (e) {
+            log('Fetch 不可用，加入队列', e);
+            // 如果fetch也不可用，加入队列
             eventQueue.push(data);
-        });
+        }
     }
 
     /**
@@ -340,7 +472,7 @@
             startFlushTimer();
 
             // 自动追踪页面浏览
-            if (config.autoTrackPageView && !config.skipInitialPageView) {
+            if (config.autoTrackPageView) {
                 this.trackPageView();
             }
 
@@ -378,7 +510,27 @@
          * @param {string} pagePath - 页面路径（可选，自动获取，支持hash路由）
          */
         trackPageView: function(pageTitle, pagePath) {
-            const currentPath = pagePath || getCurrentPath();
+            // 如果明确传入了路径，使用传入的路径；否则自动获取
+            let currentPath = pagePath;
+            
+            if (!currentPath) {
+                currentPath = getCurrentPath();
+            }
+            
+            // 确保路径格式正确
+            if (!currentPath || typeof currentPath !== 'string') {
+                currentPath = '/';
+            } else {
+                currentPath = currentPath.trim();
+                // 如果为空字符串，使用根路径
+                if (!currentPath) {
+                    currentPath = '/';
+                }
+                // 确保路径以 / 开头
+                if (!currentPath.startsWith('/')) {
+                    currentPath = '/' + currentPath;
+                }
+            }
             
             // 避免重复追踪相同路径
             if (currentPath === lastTrackedPath) {
@@ -391,13 +543,13 @@
             const data = {
                 ...buildBaseData(),
                 title: pageTitle || getPageTitle() || '',
-                path: currentPath,
+                path: currentPath,  // 确保路径是正确的格式
                 pv: '1',
                 event: 'page_view'
             };
 
             sendData(data);
-            log('页面浏览已追踪', data);
+            log('页面浏览已追踪', { path: currentPath, title: data.title });
         },
 
         /**
